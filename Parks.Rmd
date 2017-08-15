@@ -1,0 +1,154 @@
+---
+title: "Biodiversity in National Parks"
+author: "GSD"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: yes
+    number_sections: yes
+    code_folding: show
+    theme: sandstone
+    highlight: textmate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE,message=FALSE)
+```
+
+
+#Loading required libraries,
+```{r}
+library(tidyverse)
+library(knitr)
+library(data.table)
+library(formattable)
+parks=read.csv("parks.csv",header=TRUE,stringsAsFactors = FALSE)
+species=read.csv("species.csv",header=TRUE,stringsAsFactors = FALSE)
+glimpse(parks)
+glimpse(species)
+```
+
+# List of parks by acres
+
+There are `r length(unique(parks$Park.Name))` parks.
+
+
+```{r,fig.width=8,fig.height=8}
+
+parks %>% arrange(-Acres) %>% ggplot(aes(factor(Park.Name,levels=Park.Name),Acres,fill=Park.Name))+geom_bar(stat="identity")+theme(axis.text.x = element_text(angle=90,vjust=0.5),plot.title=element_text(family="verdana",hjust=0.5),legend.position = "none")+labs(x="Park Name",y="Acres")+ggtitle("Parks and the Acres")+coord_flip()
+```
+
+#Count of each category,Abundance level,Nativity,Family,Parks with highest species count,Conservation status,Seasonality
+
+## By Category
+
+There are `r length(unique(species$Category))` categories in total.
+
+```{r}
+temp=species %>% group_by(Category) %>% summarise(Category.Count=n()) %>% arrange(-Category.Count)
+ggplot(temp,aes(factor(Category,levels=Category),Category.Count,fill=Category))+geom_bar(stat="identity")+theme(axis.text.x = element_text(angle=90,vjust=0.5),plot.title=element_text(family="verdana",hjust=0.5),legend.position = "none")+labs(x="Category",y="Total Species")+ggtitle("Total species in each category")
+```
+
+
+## By Abundance level
+
+```{r}
+length(unique(species$Abundance))
+temp=species %>% group_by(Abundance) %>% summarise(Abundance.Count=n()) %>% arrange(-Abundance.Count)
+temp[temp$Abundance=="",1]="Unspecified"
+ggplot(temp,aes(factor(Abundance,levels=Abundance),Abundance.Count,fill=Abundance))+geom_bar(stat="identity")+theme(axis.text.x = element_text(angle=90,vjust=0.5),plot.title=element_text(family = "Verdana",hjust=0.5),legend.position = "none")+labs(x="Abundance",y="Total Species")+ggtitle("Total species in each Abundance level")
+
+```
+
+As seen from the bar chart,most of the category of species are not recorded into abundance level and it is impossible to draw conclusions about the abundance level of each species.
+
+## Nativity:
+
+```{r}
+length(unique(species$Nativeness))
+temp=species %>% group_by(Nativeness) %>% summarise(Nativeness.Count=n()) %>% arrange(-Nativeness.Count)
+temp[temp$Nativeness=="",1]="Unspecified"
+ggplot(temp,aes(factor(Nativeness,levels=Nativeness),Nativeness.Count,fill=Nativeness))+geom_bar(stat="identity")+theme(axis.text.x = element_text(angle=90,vjust=0.5),plot.title=element_text(family = "Verdana",hjust=0.5),legend.position = "none")+labs(x="Nativeness",y="Total Species")+ggtitle("Total species in each Nativeness level")
+
+```
+
+Native species are found in abundance in the parks with over 65000 species comming under them.There are about more than 11,000 non native species.
+
+## Family 
+
+```{r}
+length(unique(species$Family))
+temp=species %>% group_by(Family) %>% summarise(Family.Count=n()) %>% arrange(-Family.Count)
+temp[temp$Family=="",1]="Unspecified"
+ggplot(head(temp,20),aes(factor(Family,levels=Family),Family.Count,fill=Family))+geom_bar(stat="identity")+theme(axis.text.x = element_text(angle=90,vjust=0.5),plot.title=element_text(family = "Verdana",hjust=0.5),legend.position = "none",plot.subtitle=element_text(hjust=0.5))+labs(x="Family",y="Total Species")+ggtitle("Total species in each Family",subtitle = "Top 20 Families")+coord_flip()
+
+```
+
+##Conservation Status
+
+```{r}
+length(unique(species$Conservation.Status))
+temp=species %>% group_by(Conservation.Status) %>% summarise(Count=n()) %>% arrange(-Count)
+temp[temp$Conservation.Status=="",1]="Unspecified"
+ggplot(temp,aes(factor(Conservation.Status,levels=Conservation.Status),Count,fill=Conservation.Status))+geom_bar(stat="identity")+theme(axis.text.x = element_text(angle=90,vjust=0.5),plot.title=element_text(family = "Verdana",hjust=0.5),legend.position = "none",plot.subtitle=element_text(hjust=0.5))+labs(x="Conservation Status",y="Total Species")+ggtitle("Conservation level of each species")+coord_cartesian(ylim=c(0,12000),expand=TRUE)+scale_y_continuous(breaks=seq(0,12000,1000))
+```
+
+Most of the species are categoried as unspecified .Above 3000 species are species of concern while less than 500 of them are endangered.
+
+Now,let us examine in depth,
+
+
+
+#Which category of species is found in abundance?
+
+In total there are 56 parks as evident from the parks data.
+
+```{r}
+species %>% filter(Abundance=="Abundant") %>% group_by(Category) %>% summarise(abundance.count=n()) %>% arrange(-abundance.count) %>% ggplot(aes(factor(Category,levels=Category),abundance.count,fill=Category))+geom_bar(stat="identity")+theme(axis.text.x = element_text(angle=90,vjust=0.5),plot.title=element_text(family="verdana",hjust=0.5),legend.position = "none")+labs(x="Category",y="Count")+ggtitle("Category of species found in Abundance in 56 parks")+coord_flip()
+```
+
+#Which category of species is endangered?
+
+```{r}
+temp=species %>% filter(Conservation.Status=="Endangered") %>% group_by(Category) %>% summarise(count=n()) %>% arrange(-count)
+ggplot(temp,aes(factor(Category,levels=Category),count,fill=Category))+geom_bar(stat="identity")+theme(axis.text.x = element_text(angle=90,vjust=0.5),plot.title=element_text(family="verdana",hjust=0.5),legend.position = "none")+labs(x="Category",y="Count")+ggtitle("Category of species which are endangered")
+
+```
+
+Vascular plants are endangered the most followed by Mammals.
+
+#Which park has maximum Vascular plants?
+
+```{r}
+temp=species %>% filter(Category=="Vascular Plant") %>% group_by(Park.Name) %>% summarise(count=n()) %>% arrange(-count) 
+ggplot(head(temp,10),aes(factor(Park.Name,levels=Park.Name),count,fill=Park.Name))+geom_bar(stat="identity")+theme(axis.text.x = element_text(angle=90,vjust=0.5),plot.title=element_text(family="verdana",hjust=0.5),legend.position = "none")+labs(x="Category",y="Count")+ggtitle("Top 10 Parks having maximum Vascular Plants")
+```
+
+_Shenandoah National Park,Death Valley National Park,Redwood National Park,Great Smoky Mountains National Park_ has more than 2000 Vascular plants.
+
+#Which park has maximum endagered Vascular plants ?
+
+
+```{r,fig.width=14,fig.height=17}
+temp=species %>% filter((Conservation.Status=="Endangered") & (Category=="Vascular Plant")) 
+ggplot(temp,aes(Park.Name,fill=Scientific.Name))+geom_bar(stat="count")+theme(axis.text.x = element_text(angle=90,vjust=0.5),plot.title=element_text(family="verdana",hjust=0.5),legend.position = "bottom")+labs(x="Park",y="Species Count")+ggtitle("Parks where endangered species are found")+coord_flip()
+
+```
+
+_Hawaii Volcanoes National Park ,Haleakala National Park , Channel Island National Park ,Death Valley National Park_ has maximum number of endangered vascular plants.
+
+#Which species is found in most parks?
+
+```{r}
+temp=species %>% group_by(Common.Names) %>% summarise(Count=n()) %>% arrange(-Count)
+temp[temp$Common.Names=="None",1:2]=NA
+temp=na.omit(temp)
+summary(temp)
+```
+
+
+Here 75 % of the species are found in less than 5 parks.Therefore each park has distinct species of its own.
+
+
+
+
